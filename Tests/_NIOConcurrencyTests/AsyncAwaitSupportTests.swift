@@ -54,16 +54,11 @@ class AsyncAwaitHelpersTests: XCTestCase {
         }
 
         let eventLoop: EventLoop
-        let handler: (_SomeContext) async throws -> Void
         var state: State = .initial
         var task: Task<Void, Never>? = nil
 
-        init(
-            eventLoop: EventLoop,
-            handler: @escaping @Sendable (_SomeContext) async throws -> Void
-        ) {
+        init(eventLoop: EventLoop) {
             self.eventLoop = eventLoop
-            self.handler = handler
         }
 
         func moveState() {
@@ -115,7 +110,7 @@ class AsyncAwaitHelpersTests: XCTestCase {
         let group = EmbeddedEventLoop()
         let loop = group.next()
 
-        let h = Handler(eventLoop: loop) { _ in print("handler function") }
+        let h = Handler(eventLoop: loop)
         h.moveState()
         await Task.sleep(100)
         h.mockError()
