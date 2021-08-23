@@ -49,19 +49,15 @@ class AsyncAwaitHelpersTests: XCTestCase {
             case new(String)
         }
         enum State {
-            case initial
             case holdsContext(outerHandler: () -> Void, context: _SomeContext)
         }
 
         let eventLoop: EventLoop
-        var state: State = .initial
+        var state: State
         var task: Task<Void, Never>? = nil
 
         init(eventLoop: EventLoop) {
             self.eventLoop = eventLoop
-        }
-
-        func moveState() {
             let context = _SomeContext(eventLoop: self.eventLoop)
             self.state = .holdsContext(outerHandler: {
                 print("in outer handler function")
@@ -93,8 +89,6 @@ class AsyncAwaitHelpersTests: XCTestCase {
 
         func handleError(_ error: Error) {
             switch self.state {
-            case .initial:
-                print("in error handler: doing nothing")
             case .holdsContext(_, context: let context):
                 print("in error handler: canceling task")
                 self.task?.cancel()
@@ -111,7 +105,6 @@ class AsyncAwaitHelpersTests: XCTestCase {
         let loop = group.next()
 
         let h = Handler(eventLoop: loop)
-        h.moveState()
         await Task.sleep(100)
         h.mockError()
         await Task.sleep(100)
