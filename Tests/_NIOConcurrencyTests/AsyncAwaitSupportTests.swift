@@ -21,24 +21,18 @@ import NIOEmbedded
 /// This test exists here to try and repro an issue in in another project. As a result some of the types look bizarre.
 @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
 class AsyncAwaitHelpersTests: XCTestCase {
+
     open class BaseContext {
         let eventLoop: EventLoop
+        let somePromise: EventLoopPromise<String>
         init(eventLoop: EventLoop) {
             self.eventLoop = eventLoop
-        }
-    }
-
-
-    open class SomeContext: BaseContext {
-        let somePromise: EventLoopPromise<String>
-        override init(eventLoop: EventLoop) {
             self.somePromise = eventLoop.makePromise()
-            super.init(eventLoop: eventLoop)
         }
 
     }
 
-    final class _SomeContext: SomeContext {
+    final class _SomeContext: BaseContext {
         override init(eventLoop: EventLoop) {
             super.init(eventLoop: eventLoop)
         }
