@@ -97,6 +97,8 @@ var targets: [PackageDescription.Target] = [
                 dependencies: ["NIOCore", "NIOFoundationCompat"]),
     .testTarget(name: "NIOTests",
                 dependencies: ["NIO"]),
+    .testTarget(name: "_NIOConcurrencyTests",
+                dependencies: ["_NIOConcurrency"]),
 ]
 
 let package = Package(
