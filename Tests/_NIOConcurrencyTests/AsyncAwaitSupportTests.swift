@@ -22,27 +22,18 @@ import NIOEmbedded
 @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
 class AsyncAwaitHelpersTests: XCTestCase {
 
-    class Context {
-        let eventLoop: EventLoop
-        let somePromise: EventLoopPromise<String>
-        init(eventLoop: EventLoop) {
-            self.eventLoop = eventLoop
-            self.somePromise = eventLoop.makePromise()
-        }
-    }
+    struct HandlerError: Error {}
 
     class Handler {
-        struct HandlerError: Error {}
-
-        let context: Context
         let eventLoop: EventLoop
+        let promise: EventLoopPromise<String>
         var task: Task<Void, Never>? = nil
 
         init(eventLoop: EventLoop) {
             self.eventLoop = eventLoop
-            self.context = Context(eventLoop: self.eventLoop)
-            context.somePromise.futureResult.whenComplete(self.completionHandler(_:))
-            self.task = context.somePromise.completeWithTask {
+            self.promise = self.eventLoop.makePromise()
+            self.promise.futureResult.whenComplete(self.completionHandler(_:))
+            self.task = self.promise.completeWithTask {
                 try await Task.sleep(nanoseconds: 200)
                 guard !Task.isCancelled else {
                     throw CancellationError()
@@ -73,7 +64,7 @@ class AsyncAwaitHelpersTests: XCTestCase {
                 task.cancel()
             }
             log("failing promise with error: \(error)")
-            context.somePromise.fail(error)
+            self.promise.fail(error)
         }
     }
 
