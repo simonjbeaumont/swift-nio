@@ -22,7 +22,7 @@ import NIOEmbedded
 @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
 class AsyncAwaitHelpersTests: XCTestCase {
 
-    open class BaseContext {
+    class Context {
         let eventLoop: EventLoop
         let somePromise: EventLoopPromise<String>
         init(eventLoop: EventLoop) {
@@ -31,17 +31,11 @@ class AsyncAwaitHelpersTests: XCTestCase {
         }
     }
 
-    final class SomeContext: BaseContext {
-        override init(eventLoop: EventLoop) {
-            super.init(eventLoop: eventLoop)
-        }
-    }
-
     class Handler {
         struct HandlerError: Error {}
 
         enum State {
-            case holdsContext(SomeContext)
+            case holdsContext(Context)
         }
 
         let eventLoop: EventLoop
@@ -50,7 +44,7 @@ class AsyncAwaitHelpersTests: XCTestCase {
 
         init(eventLoop: EventLoop) {
             self.eventLoop = eventLoop
-            let context = SomeContext(eventLoop: self.eventLoop)
+            let context = Context(eventLoop: self.eventLoop)
             self.state = .holdsContext(context)
             context.somePromise.futureResult.whenComplete(self.completionHandler(_:))
             self.task = context.somePromise.completeWithTask {
