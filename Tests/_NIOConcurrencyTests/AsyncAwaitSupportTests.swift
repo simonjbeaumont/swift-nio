@@ -87,22 +87,24 @@ class AsyncAwaitHelpersTests: XCTestCase {
                 print("in error handler: failing promise")
                 context.somePromise.fail(error)
             }
-
         }
     }
 
     func testPromiseCompletedWithSuccessfulTaskInClassAsyncWithAwaitWithYield() { XCTAsyncTest {
-        print("Starting test \(UUID().uuidString)")
-        let group = EmbeddedEventLoop()
-        let loop = group.next()
+        for iteration in 1...10_000 {
+            print("---")
+            print("Starting test iteration \(iteration)")
+            let group = EmbeddedEventLoop()
+            let loop = group.next()
 
-        let h = Handler(eventLoop: loop)
-        await Task.sleep(100)
-        h.mockError()
-        await Task.sleep(100)
+            let h = Handler(eventLoop: loop)
+            await Task.sleep(1000)
+            h.mockError()
+            await Task.sleep(1000)
 
-        XCTAssertNotNil(h.task)
-        await h.task!.value
+            XCTAssertNotNil(h.task)
+            await h.task!.value
+        }
     } }
 }
 
@@ -118,7 +120,7 @@ fileprivate extension XCTestCase {
   /// - NOTE: Implementation currently in progress: https://github.com/apple/swift-corelibs-xctest/pull/326
   func XCTAsyncTest(
     expectationDescription: String = "Async operation",
-    timeout: TimeInterval = 3,
+    timeout: TimeInterval = 30,
     file: StaticString = #file,
     line: Int = #line,
     operation: @escaping () async throws -> Void
