@@ -29,21 +29,19 @@ class AsyncAwaitHelpersTests: XCTestCase {
             self.eventLoop = eventLoop
             self.somePromise = eventLoop.makePromise()
         }
-
     }
 
-    final class _SomeContext: BaseContext {
+    final class SomeContext: BaseContext {
         override init(eventLoop: EventLoop) {
             super.init(eventLoop: eventLoop)
         }
     }
 
     class Handler {
-        enum HandlerError: Error {
-            case new(String)
-        }
+        struct HandlerError: Error {}
+
         enum State {
-            case holdsContext(_SomeContext)
+            case holdsContext(SomeContext)
         }
 
         let eventLoop: EventLoop
@@ -52,29 +50,30 @@ class AsyncAwaitHelpersTests: XCTestCase {
 
         init(eventLoop: EventLoop) {
             self.eventLoop = eventLoop
-            let context = _SomeContext(eventLoop: self.eventLoop)
+            let context = SomeContext(eventLoop: self.eventLoop)
             self.state = .holdsContext(context)
             context.somePromise.futureResult.whenComplete(self.completionHandler(_:))
             self.task = context.somePromise.completeWithTask {
-                await Task.sleep(200)
+                try await Task.sleep(nanoseconds: 200)
                 guard !Task.isCancelled else {
                     throw CancellationError()
                 }
-                return "yay"
+                return "OK"
             }
         }
 
         func mockError() {
-            self.handleError(HandlerError.new("FOO"))
+            let error = HandlerError()
+            log("calling handleError(_:) with error: \(error)")
+            self.handleError(error)
         }
 
         func completionHandler(_ result: Result<String, Error>) {
-            print("in completion handler for promise")
             switch result {
             case .success(let value):
-                print("was success with value: \(value)")
+                log("was success with value: \(value)")
             case .failure(let error):
-                print("calling error handler with error: \(error)")
+                log("was failure with error: \(error)")
                 handleError(error)
             }
         }
@@ -82,28 +81,31 @@ class AsyncAwaitHelpersTests: XCTestCase {
         func handleError(_ error: Error) {
             switch self.state {
             case let .holdsContext(context):
-                print("in error handler: canceling task")
-                self.task?.cancel()
-                print("in error handler: failing promise")
+                if let task = self.task {
+                    log("canceling task")
+                    task.cancel()
+                }
+                log("failing promise with error: \(error)")
                 context.somePromise.fail(error)
             }
         }
     }
 
     func testPromiseCompletedWithSuccessfulTaskInClassAsyncWithAwaitWithYield() { XCTAsyncTest {
-        for iteration in 1...10_000 {
+        let iterations = 50_000
+        for iteration in 1...iterations {
             print("---")
             print("Starting test iteration \(iteration)")
             let group = EmbeddedEventLoop()
             let loop = group.next()
 
             let h = Handler(eventLoop: loop)
-            await Task.sleep(1000)
+            try await Task.sleep(nanoseconds: 1000)
             h.mockError()
-            await Task.sleep(1000)
+            try await Task.sleep(nanoseconds: 1000)
 
             XCTAssertNotNil(h.task)
-            await h.task!.value
+            await h.task?.value
         }
     } }
 }
@@ -137,6 +139,13 @@ fileprivate extension XCTestCase {
     }
     self.wait(for: [expectation], timeout: timeout)
   }
+}
+
+@inline(__always)
+fileprivate func log(_ message: String, function: String = #function, line: Int = #line, file: String = #fileID) {
+    // The thread numbers printed by LLDB (and visible in the Xcode debugger are 1-based).
+    let threadNumber = Thread.current.value(forKeyPath: "_seqNum") as! Int + 1
+    print("on thread \(threadNumber) in \(function): \(message)")
 }
 
 #endif

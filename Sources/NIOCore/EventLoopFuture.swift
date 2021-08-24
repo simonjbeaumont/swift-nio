@@ -414,6 +414,7 @@ public final class EventLoopFuture<Value> {
     }
 
     deinit {
+        log(".")
         debugOnly {
             if let creation = eventLoop._promiseCompleted(futureIdentifier: _NIOEventLoopFutureIdentifier(self)) {
                 if self._value == nil {
@@ -425,6 +426,7 @@ public final class EventLoopFuture<Value> {
         }
     }
 }
+
 
 extension EventLoopFuture: Equatable {
     public static func ==(lhs: EventLoopFuture, rhs: EventLoopFuture) -> Bool {
@@ -1569,4 +1571,12 @@ public struct _NIOEventLoopFutureIdentifier: Hashable {
         // won't see it as a reference.
         return UInt(bitPattern: ObjectIdentifier(future)) ^ 0xbf15ca5d
     }
+}
+
+import Foundation
+@inline(__always)
+fileprivate func log(_ message: String, function: String = #function, line: Int = #line, file: String = #fileID) {
+    // The thread numbers printed by LLDB (and visible in the Xcode debugger are 1-based).
+    let threadNumber = Thread.current.value(forKeyPath: "_seqNum") as! Int + 1
+    print("on thread \(threadNumber) in \(function): \(message)")
 }

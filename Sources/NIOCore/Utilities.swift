@@ -199,4 +199,3 @@ public enum System {
         return devices
     }
 }
-
