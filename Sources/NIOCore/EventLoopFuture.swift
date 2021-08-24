@@ -1573,10 +1573,17 @@ public struct _NIOEventLoopFutureIdentifier: Hashable {
     }
 }
 
+#if os(macOS)
 import Foundation
+#endif
+
 @inline(__always)
 fileprivate func log(_ message: String, function: String = #function, line: Int = #line, file: String = #fileID) {
+    #if os(macOS)
     // The thread numbers printed by LLDB (and visible in the Xcode debugger are 1-based).
-    let threadNumber = Thread.current.value(forKeyPath: "_seqNum") as! Int + 1
+    let threadNumber = "\(Thread.current.value(forKeyPath: "_seqNum") as! Int + 1)"
+    #else
+    let threadNumber = "unknown"
+    #endif
     print("on thread \(threadNumber) in \(function): \(message)")
 }

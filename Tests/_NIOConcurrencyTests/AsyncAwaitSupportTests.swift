@@ -92,7 +92,7 @@ class AsyncAwaitHelpersTests: XCTestCase {
     }
 
     func testPromiseCompletedWithSuccessfulTaskInClassAsyncWithAwaitWithYield() { XCTAsyncTest {
-        let iterations = 50_000
+        let iterations = 1_000_000
         for iteration in 1...iterations {
             print("---")
             print("Starting test iteration \(iteration)")
@@ -143,8 +143,12 @@ fileprivate extension XCTestCase {
 
 @inline(__always)
 fileprivate func log(_ message: String, function: String = #function, line: Int = #line, file: String = #fileID) {
+    #if os(macOS)
     // The thread numbers printed by LLDB (and visible in the Xcode debugger are 1-based).
-    let threadNumber = Thread.current.value(forKeyPath: "_seqNum") as! Int + 1
+    let threadNumber = "\(Thread.current.value(forKeyPath: "_seqNum") as! Int + 1)"
+    #else
+    let threadNumber = "unknown"
+    #endif
     print("on thread \(threadNumber) in \(function): \(message)")
 }
 
