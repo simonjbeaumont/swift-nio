@@ -34,18 +34,13 @@ class AsyncAwaitHelpersTests: XCTestCase {
     class Handler {
         struct HandlerError: Error {}
 
-        enum State {
-            case holdsContext(Context)
-        }
-
+        let context: Context
         let eventLoop: EventLoop
-        var state: State
         var task: Task<Void, Never>? = nil
 
         init(eventLoop: EventLoop) {
             self.eventLoop = eventLoop
-            let context = Context(eventLoop: self.eventLoop)
-            self.state = .holdsContext(context)
+            self.context = Context(eventLoop: self.eventLoop)
             context.somePromise.futureResult.whenComplete(self.completionHandler(_:))
             self.task = context.somePromise.completeWithTask {
                 try await Task.sleep(nanoseconds: 200)
@@ -73,15 +68,12 @@ class AsyncAwaitHelpersTests: XCTestCase {
         }
 
         func handleError(_ error: Error) {
-            switch self.state {
-            case let .holdsContext(context):
-                if let task = self.task {
-                    log("canceling task")
-                    task.cancel()
-                }
-                log("failing promise with error: \(error)")
-                context.somePromise.fail(error)
+            if let task = self.task {
+                log("canceling task")
+                task.cancel()
             }
+            log("failing promise with error: \(error)")
+            context.somePromise.fail(error)
         }
     }
 
