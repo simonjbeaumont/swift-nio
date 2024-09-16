@@ -497,8 +497,8 @@ internal final class SelectableEventLoop: EventLoop {
                     fatalError("Tried to run an UnownedJob without runtime support")
                 }
             #endif
-            case .callback(let handler):
-                handler.handleScheduledCallback(eventLoop: self)
+            case .callback(let callback):
+                callback(self)
             }
         }
     }
@@ -595,7 +595,7 @@ internal final class SelectableEventLoop: EventLoop {
                     scheduledTasks.pop()
                     switch task.kind {
                     case .task(let task, _): tasksCopy.append(.function(task))
-                    case .callback(let handler): tasksCopy.append(.callback(handler))
+                    case .callback(let handler, _): tasksCopy.append(.callback(handler))
                     }
                 } else {
                     nextScheduledTaskDeadline = task.readyTime
@@ -701,8 +701,8 @@ internal final class SelectableEventLoop: EventLoop {
                     case .task(_, let failFn):
                         failFn(EventLoopError._shutdown)
                     // Call the cancellation handler for all the scheduled callbacks.
-                    case .callback(let handler):
-                        handler.didCancelScheduledCallback(eventLoop: self)
+                    case .callback(_, let cancellationHandler):
+                        cancellationHandler(self)
                     }
                 }
 
@@ -912,7 +912,7 @@ enum UnderlyingTask {
     #if compiler(>=5.9)
     case unownedJob(ErasedUnownedJob)
     #endif
-    case callback(any NIOScheduledCallbackHandler)
+    case callback((SelectableEventLoop) -> Void)
 }
 
 @usableFromInline
@@ -937,7 +937,7 @@ extension SelectableEventLoop {
         handler: some NIOScheduledCallbackHandler
     ) throws -> NIOScheduledCallback {
         let taskID = self.scheduledTaskCounter.loadThenWrappingIncrement(ordering: .relaxed)
-        let task = ScheduledTask(id: taskID, handler, deadline)
+        let task = ScheduledTask(id: taskID, handleScheduledCallback: handler.handleScheduledCallback(eventLoop:), didCancelScheduledCallback: handler.didCancelScheduledCallback(eventLoop:), deadline)
         try self._schedule0(.scheduled(task))
         return NIOScheduledCallback(self, id: taskID)
     }
@@ -952,10 +952,10 @@ extension SelectableEventLoop {
                 // Must have been cancelled already.
                 return
             }
-            guard case .callback(let handler) = scheduledTask.kind else {
+            guard case .callback(let handler, _) = scheduledTask.kind else {
                 preconditionFailure("Incorrect task kind for callback")
             }
-            handler.didCancelScheduledCallback(eventLoop: self)
+            handler(self)
         }
     }
 }

@@ -511,7 +511,7 @@ internal struct ScheduledTask {
     @usableFromInline
     enum Kind {
         case task(task: () -> Void, failFn: (Error) -> Void)
-        case callback(any NIOScheduledCallbackHandler)
+        case callback(handleScheduledCallback: (SelectableEventLoop) -> (), didCancelScheduledCallback: (SelectableEventLoop) -> ())
     }
 
     @usableFromInline
@@ -536,10 +536,10 @@ internal struct ScheduledTask {
     }
 
     @usableFromInline
-    init(id: UInt64, _ handler: any NIOScheduledCallbackHandler, _ time: NIODeadline) {
+    init(id: UInt64, handleScheduledCallback: @escaping (SelectableEventLoop) -> (), didCancelScheduledCallback: @escaping (SelectableEventLoop) -> (), _ time: NIODeadline) {
         self.id = id
         self.readyTime = time
-        self.kind = .callback(handler)
+        self.kind = .callback(handleScheduledCallback: handleScheduledCallback, didCancelScheduledCallback: didCancelScheduledCallback)
     }
 }
 

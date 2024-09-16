@@ -15,7 +15,7 @@
 /// A type that handles callbacks scheduled with `EventLoop.scheduleCallback(at:handler:)`.
 ///
 /// - Seealso: `EventLoop.scheduleCallback(at:handler:)`.
-public protocol NIOScheduledCallbackHandler {
+public protocol NIOScheduledCallbackHandler: AnyObject {
     /// This function is called at the scheduled time, unless the scheduled callback is cancelled.
     ///
     /// - Parameter eventLoop: The event loop on which the callback was scheduled.
