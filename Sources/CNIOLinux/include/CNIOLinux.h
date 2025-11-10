@@ -41,6 +41,9 @@
 #include <stdio.h>
 #include <dirent.h>
 #endif
+#if __has_include(<netinet/in.h>)
+#include <netinet/in.h>
+#endif
 
 // We need to include this outside the `#ifdef` so macOS builds don't warn about the missing include,
 // but we also need to make sure the system includes come before it on Linux, so we put it down here
